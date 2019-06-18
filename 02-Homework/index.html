@@ -36,7 +36,6 @@
                         </tr>
                     </thead>
                     <tbody id="trainSection">
-
                     </tbody>
                 </table>
 
@@ -47,13 +46,13 @@
                     <div class="card-body">
                         <form>
                             <div class="form-group">
-                                <label for="exampleInputEmail1">Train name</label>
+                                <label for="exampleInputEmail1">Train Name</label>
                                 <input type="email" class="form-control" id="trainName" aria-describedby="emailHelp"
                                     placeholder="Train name">
                                 <small id="emailHelp" class="form-text text-muted"></small>
                             </div>
                             <div class="form-group">
-                                <label for="exampleInputEmail1">Destination</label>
+                                <label for="exampleInputEmail1">Train Destination</label>
                                 <input type="email" class="form-control" id="trainDestination"
                                     aria-describedby="emailHelp" placeholder="Destination">
                                 <small id="emailHelp" class="form-text text-muted"></small>
@@ -67,8 +66,8 @@
 
 
                             <div class="form-group">
-                                <label for="exampleInputPassword1">Frequency(minutes)</label>
-                                <input type="password" class="form-control" id="frequency" placeholder="Password">
+                                <label for="exampleInputPassword1">Frequency (min)</label>
+                                <input type="password" class="form-control" id="frequency" placeholder="frequency">
                             </div>
 
                             <button id="save" type="submit" class="btn btn-primary">Submit</button>
@@ -82,6 +81,7 @@
 
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.4.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/moment@2.24.0/moment.min.js"></script>
     <!-- The core Firebase JS SDK is always required and must be listed first -->
     <!-- <script src="/__/firebase/5.11.1/firebase-app.js"></script> -->
     <script src="https://www.gstatic.com/firebasejs/6.0.0/firebase-app.js"></script>
@@ -94,6 +94,7 @@
     <!-- <script src="/__/firebase/init.js"></script> -->
 
     <script>
+        // access firebase
         const firebaseConfig = {
             apiKey: "AIzaSyBASFMnB_WfoRc07h7-wyM4MtJ0T1gZXBk",
             authDomain: "train-schedule-5ddf6.firebaseapp.com",
@@ -110,79 +111,103 @@
 
 
         $(document).ready(function () {
-            // access firebase
             var database = firebase.database();
+
+
+            var trainName;
+            var trainDestination;
+            var firstTime;
+            var frequency;
+            // on submit get the inputs
             $("#save").on("click", function (e) {
                 e.preventDefault();
 
-                var trainName = $("#trainName").val().trim();
-                var trainDestination = $("#trainDestination").val().trim();
-                var frequency = $("#frequency").val().trim();
+                trainName = $("#trainName").val().trim();
+                trainDestination = $("#trainDestination").val().trim();
+                firstTime = $("#firstTime").val().trim();
+                frequency = $("#frequency").val().trim();
 
-                // console.log(trainName);
+
+                console.log(firstTime);
+                console.log(frequency);
 
                 database.ref().push({
                     trainName: trainName,
                     trainDestination: trainDestination,
                     firstTime: firstTime,
-                    frequency: frequency,
+                    frequency: frequency
                 });
             });
-            // on submit get the inputs
+
             // save the inputs to the firebase
             // update the listing for the train
             database.ref().on("child_added", function (snapshot) {
-                var date = snapshot.val();
+                var data = snapshot.val();
                 if (!data) {
                     return;
                 }
-                // calculate next arrival
-                var nextArrival = "?";
                 // calculate minutes away
                 // First Time (pushed back 1 year to make sure it comes before current time)
-                var startTimeConverted = moment(newFirstTrain, "hh:mm").subtract(1, "years");
-
-                // Current Time
+                var startTimeConverted = moment(data.firstTime, "hh:mm").subtract(1, "years");
+                console.log(data.firstTime);
+                // Current Timedatr
                 var currentTime = moment();
 
                 // Difference between the times
                 var diffTime = moment().diff(moment(startTimeConverted), "minutes");
-
+                console.log(diffTime);
                 // Time apart (remainder)
-                var tRemainder = diffTime % newFreq;
-
-                // Minute(s) Until Train
-                var tMinutesTillTrain = newFreq - tRemainder;
+                var tRemainder = diffTime % data.frequency;
+                console.log(typeof (data.frequency));
+                var tMinutesTillTrain = moment(nextTrain, "HH:mm").diff(moment(), "m");
 
                 // Next Train
-                var nextTrain = moment().add(tMinutesTillTrain, "minutes");
-                var catchTrain = moment(nextTrain).format("HH:mm");
-                var minutesAway = 99;
-                // add to html 
+                var nextTrain = moment().add(tMinutesTillTrain, "minutes").format("HH:mm");
+                // calculate next arrival
+                var nextArrival = nextTrain;
+                // calculate minutesAway
+                // var minutesAway = tMinutesTillTrain;
+                var html = `
+                <tr>
+                    <td>${data.trainName}</td>
+                    <td>${data.trainDestination}</td>
+                    <td>${data.frequency}</td>
+                    <td>${nextArrival}</td>
+                    <td>${tMinutesTillTrain}</td>
+                `;
 
-
-                // Display On Page
-                $("#trainSection").append(
-                    ' <tr><td>' + newTrain +
-                    ' </td><td>' + newLocation +
-                    ' </td><td>' + newFreq +
-                    ' </td><td>' + catchTrain +
-                    ' </td><td>' + tMinutesTillTrain + ' </td></tr>');
-
-                // Clear input fields
-                $("#trainName, #trainDestination, #firstTime, #frequency").val("");
-                return false;
-            },
-                function (errorObject) {
-                    console.log("Errors handled: " + errorObject.code);
-                });
+                $("#trainSection").append(html);
 
 
 
+
+                // calculate minutes away
+                // First Time (pushed back 1 year to make sure it comes before current time)
+                // var startTimeConverted = moment(firstTime, "hh:mm").subtract(1, "years");
+
+                // // Current Time
+                // var currentTime = moment();
+
+                // // Difference between the times
+                // var diffTime = moment().diff(moment(startTimeConverted), "minutes");
+
+                // // Time apart (remainder)
+                // var tRemainder = diffTime % frequency;
+
+                // Minute(s) Until Train
+                // var tMinutesTillTrain = frequency - tRemainder;
+
+                // Next Train
+                // var nextTrain = moment().add(tMinutesTillTrain, "minutes");
+                // var catchTrain = moment(nextTrain).format("HH:mm");
+
+
+                // },
+                //     function (errorObject) {
+                //         console.log("Errors handled: " + errorObject.code);
+            });
 
         });
-
-
 
             // at the end, get the prediction working 
 
